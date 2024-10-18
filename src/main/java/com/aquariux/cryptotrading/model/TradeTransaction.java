@@ -1,11 +1,12 @@
 package com.aquariux.cryptotrading.model;
 
-import com.aquariux.cryptotrading.constants.CryptoPairEnum;
+import com.aquariux.cryptotrading.constants.CryptoSymbolEnum;
 import com.aquariux.cryptotrading.constants.TxnTypeEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
@@ -14,6 +15,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @AllArgsConstructor
+@NoArgsConstructor
 @Entity(name = "TRADE_TRANSACTION")
 public final class TradeTransaction {
     @Id
@@ -25,7 +27,7 @@ public final class TradeTransaction {
     private User user;
 
     @Enumerated(EnumType.STRING)
-    private CryptoPairEnum cryptoPair;
+    private CryptoSymbolEnum cryptoSymbol;
 
     @Enumerated(EnumType.STRING)
     private TxnTypeEnum txnType;
