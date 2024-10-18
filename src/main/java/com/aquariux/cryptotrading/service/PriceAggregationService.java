@@ -4,6 +4,8 @@ import com.aquariux.cryptotrading.constants.CryptoProvider;
 import com.aquariux.cryptotrading.constants.CryptoSymbolEnum;
 import com.aquariux.cryptotrading.dto.BinancePriceElement;
 import com.aquariux.cryptotrading.dto.BinancePriceResponse;
+import com.aquariux.cryptotrading.dto.HuobiPriceElement;
+import com.aquariux.cryptotrading.dto.HuobiPriceResponse;
 import com.aquariux.cryptotrading.repository.MarketPriceRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +38,7 @@ public class PriceAggregationService {
     @Scheduled(fixedRate = 10000)
     public void fetchAndStorePrices() {
         BinancePriceResponse binancePrice = fetchBinancePrice();
-//        HuobiPriceResponse huobiPrice = fetchHuobiPrice();
+        HuobiPriceResponse huobiPrice = fetchHuobiPrice();
     }
 
     private BinancePriceResponse fetchBinancePrice() {
@@ -53,9 +55,20 @@ public class PriceAggregationService {
         return response;
     }
 
-    private BigDecimal fetchHuobiPrice() {
-        // TODO: fetch real data from Huobi
-        return new BigDecimal("0");
+    private HuobiPriceResponse fetchHuobiPrice() {
+        HuobiPriceResponse huobiPriceResponse = fetchPriceList(CryptoProvider.HOUBI_URL,
+                new ParameterizedTypeReference<>() {});
+        if (huobiPriceResponse == null) {
+            huobiPriceResponse = new HuobiPriceResponse();
+        }
+        if (CollectionUtils.isEmpty(huobiPriceResponse.getData())) {
+            huobiPriceResponse.setData(new ArrayList<>());
+        } else {
+            // filter allowed crypto symbols
+            huobiPriceResponse.setData(huobiPriceResponse.getData().stream()
+                    .filter(price -> CryptoSymbolEnum.contains(price.getSymbol())).toList());
+        }
+        return huobiPriceResponse;
     }
 
     private <T> T fetchPriceList(String url, ParameterizedTypeReference<T> responseType) {
