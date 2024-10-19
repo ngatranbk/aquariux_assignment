@@ -2,10 +2,8 @@ package com.aquariux.cryptotrading.service;
 
 import com.aquariux.cryptotrading.constants.CryptoProvider;
 import com.aquariux.cryptotrading.constants.CryptoSymbolEnum;
-import com.aquariux.cryptotrading.dto.BinancePriceElement;
-import com.aquariux.cryptotrading.dto.BinancePriceResponse;
-import com.aquariux.cryptotrading.dto.HuobiPriceElement;
-import com.aquariux.cryptotrading.dto.HuobiPriceResponse;
+import com.aquariux.cryptotrading.dto.*;
+import com.aquariux.cryptotrading.model.MarketPrice;
 import com.aquariux.cryptotrading.repository.MarketPriceRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,9 +20,8 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.time.LocalDateTime;
+import java.util.*;
 
 @Service
 public class PriceAggregationService {
@@ -36,9 +33,44 @@ public class PriceAggregationService {
 
     // Fetch data every 10 seconds
     @Scheduled(fixedRate = 10000)
-    public void fetchAndStorePrices() {
-        BinancePriceResponse binancePrice = fetchBinancePrice();
-        HuobiPriceResponse huobiPrice = fetchHuobiPrice();
+    public void fetchAndStoreBestPrices() {
+        BinancePriceResponse binancePriceResponse = fetchBinancePrice();
+        HuobiPriceResponse huobiPriceResponse = fetchHuobiPrice();
+
+        // combine all prices for comparison
+        List<MarketPriceElement> priceList = new ArrayList<>(binancePriceResponse.getPriceList().stream()
+                .map(p -> new MarketPriceElement(p.getSymbol(), p.getBidPrice(), p.getAskPrice())).toList());
+        priceList.addAll(huobiPriceResponse.getData().stream()
+                .map(p -> new MarketPriceElement(p.getSymbol(), p.getBid(), p.getAsk())).toList());
+
+        BigDecimal maxBidPrice;
+        BigDecimal minAskPrice;
+        for (CryptoSymbolEnum cryptoSymbol : CryptoSymbolEnum.values()) {
+            maxBidPrice = priceList.stream().filter(p -> p.getSymbol().equalsIgnoreCase(cryptoSymbol.name()))
+                    .map(MarketPriceElement::getBidPrice).max(BigDecimal::compareTo).orElse(null);
+            minAskPrice = priceList.stream().filter(p -> p.getSymbol().equalsIgnoreCase(cryptoSymbol.name()))
+                    .map(MarketPriceElement::getAskPrice).min(BigDecimal::compareTo).orElse(null);
+            if (maxBidPrice == null || minAskPrice == null) {
+                LOG.info("Something went wrong with the server, just wait for the next aggregation!!!");
+                continue;
+            }
+            MarketPrice marketPrice = new MarketPrice();
+            marketPrice.setCryptoSymbol(cryptoSymbol);
+            marketPrice.setBidPrice(maxBidPrice);
+            marketPrice.setAskPrice(minAskPrice);
+            marketPrice.setDtReceived(LocalDateTime.now());
+            upsertMarketPrice(marketPrice);
+        }
+
+    }
+
+    private void upsertMarketPrice(MarketPrice marketPrice) {
+        marketPriceRepository.upsertMarketPrice(
+                marketPrice.getCryptoSymbol().name(),
+                marketPrice.getBidPrice(),
+                marketPrice.getAskPrice(),
+                marketPrice.getDtReceived()
+        );
     }
 
     private BinancePriceResponse fetchBinancePrice() {

@@ -25,5 +25,5 @@ public final class MarketPrice {
 
     private BigDecimal bidPrice;
     private BigDecimal askPrice;
-    private LocalDateTime timestamp;
+    private LocalDateTime dtReceived;
 }
