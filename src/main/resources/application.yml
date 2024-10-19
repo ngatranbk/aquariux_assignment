@@ -20,5 +20,6 @@ spring:
       hibernate:
         default_schema: crypto
 
-
-#spring.jpa.properties.hibernate.default_schema=crypto
+task:
+  executor:
+    maxPoolSize: 5

@@ -8,6 +8,7 @@ import com.aquariux.cryptotrading.repository.MarketPriceRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +23,7 @@ import org.springframework.web.client.RestTemplate;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.*;
 
 @Service
 public class PriceAggregationService {
@@ -31,11 +33,32 @@ public class PriceAggregationService {
     @Autowired
     private MarketPriceRepository marketPriceRepository;
 
+    @Value("${task.executor.maxPoolSize}")
+    private int maxPoolSize;
+
     // Fetch data every 10 seconds
     @Scheduled(fixedRate = 10000)
-    public void fetchAndStoreBestPrices() {
-        BinancePriceResponse binancePriceResponse = fetchBinancePrice();
-        HuobiPriceResponse huobiPriceResponse = fetchHuobiPrice();
+    public void fetchAndStoreBestPrices() throws ExecutionException, InterruptedException {
+        ExecutorService executor = Executors.newFixedThreadPool(Math.min(CryptoProvider.values().length, maxPoolSize));
+
+        CompletableFuture<BinancePriceResponse> binancePriceFuture = CompletableFuture.supplyAsync(this::fetchBinancePrice, executor);
+        CompletableFuture<HuobiPriceResponse> huobiPriceFuture = CompletableFuture.supplyAsync(this::fetchHuobiPrice, executor);
+
+        // wait for all APIs to complete
+        CompletableFuture<Void> allFutures = CompletableFuture.allOf(binancePriceFuture, huobiPriceFuture);
+        allFutures.get();
+        BinancePriceResponse binancePriceResponse = binancePriceFuture.get();
+        HuobiPriceResponse huobiPriceResponse = huobiPriceFuture.get();
+
+        // Shutdown the executor
+        executor.shutdown();
+        try {
+            if (!executor.awaitTermination(60, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executor.shutdownNow();
+        }
 
         // combine all prices for comparison
         List<MarketPriceElement> priceList = new ArrayList<>(binancePriceResponse.getPriceList().stream()
@@ -74,7 +97,7 @@ public class PriceAggregationService {
     }
 
     private BinancePriceResponse fetchBinancePrice() {
-        List<BinancePriceElement> priceList = fetchPriceList(CryptoProvider.BINANCE_URL,
+        List<BinancePriceElement> priceList = fetchPriceList(CryptoProvider.BINANCE.getUrl(),
                 new ParameterizedTypeReference<>() {});
         BinancePriceResponse response = new BinancePriceResponse();
         if (CollectionUtils.isEmpty(priceList)) {
@@ -88,7 +111,7 @@ public class PriceAggregationService {
     }
 
     private HuobiPriceResponse fetchHuobiPrice() {
-        HuobiPriceResponse huobiPriceResponse = fetchPriceList(CryptoProvider.HOUBI_URL,
+        HuobiPriceResponse huobiPriceResponse = fetchPriceList(CryptoProvider.HUOBI.getUrl(),
                 new ParameterizedTypeReference<>() {});
         if (huobiPriceResponse == null) {
             huobiPriceResponse = new HuobiPriceResponse();
