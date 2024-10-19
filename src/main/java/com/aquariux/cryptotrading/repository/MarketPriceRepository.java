@@ -15,14 +15,16 @@ public interface MarketPriceRepository extends JpaRepository<MarketPrice, Long> 
   @Modifying
   @Query(
       value =
-          "MERGE INTO crypto.market_price (crypto_symbol, bid_price, ask_price, dt_received) "
+          "MERGE INTO crypto.market_price (crypto_symbol, bid_price, bid_qty, ask_price, ask_qty, dt_received) "
               + "KEY (crypto_symbol) "
-              + "VALUES (:cryptoSymbol, :bidPrice, :askPrice, :dtReceived)",
+              + "VALUES (:cryptoSymbol, :bidPrice, :bidQty, :askPrice, :askQty, :dtReceived)",
       nativeQuery = true)
   @Transactional
   void upsertMarketPrice(
       @Param("cryptoSymbol") String cryptoSymbol,
       @Param("bidPrice") BigDecimal bidPrice,
+      @Param("bidQty") BigDecimal bidQty,
       @Param("askPrice") BigDecimal askPrice,
+      @Param("askQty") BigDecimal askQty,
       @Param("dtReceived") LocalDateTime dtReceived);
 }

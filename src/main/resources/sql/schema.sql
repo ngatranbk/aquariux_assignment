@@ -25,6 +25,8 @@ CREATE TABLE IF NOT EXISTS CRYPTO.market_price (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   crypto_symbol VARCHAR(20) NOT NULL,
   bid_price DECIMAL(19,8),
+  bid_qty DECIMAL(19,8),
   ask_price DECIMAL(19,8),
+  ask_qty DECIMAL(19,8),
   dt_received TIMESTAMP NOT NULL
 );

@@ -23,6 +23,8 @@ public final class MarketPrice {
   private CryptoSymbolEnum cryptoSymbol;
 
   private BigDecimal bidPrice;
+  private BigDecimal bidQty;
   private BigDecimal askPrice;
+  private BigDecimal askQty;
   private LocalDateTime dtReceived;
 }

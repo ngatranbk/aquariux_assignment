@@ -23,3 +23,5 @@ spring:
 task:
   executor:
     maxPoolSize: 5
+    awaitTerminationInSecond: 60
+  timeoutInSecond: 5

@@ -3,7 +3,6 @@ package com.aquariux.cryptotrading.service;
 import com.aquariux.cryptotrading.constants.CryptoProvider;
 import com.aquariux.cryptotrading.constants.CryptoSymbolEnum;
 import com.aquariux.cryptotrading.dto.*;
-import com.aquariux.cryptotrading.model.MarketPrice;
 import com.aquariux.cryptotrading.repository.MarketPriceRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -34,6 +33,12 @@ public class PriceAggregationService {
   @Value("${task.executor.maxPoolSize}")
   private int maxPoolSize;
 
+  @Value("${task.executor.awaitTerminationInSecond}")
+  private int awaitTerminationInSecond;
+
+  @Value("${task.timeoutInSecond}")
+  private int timeoutInSecond;
+
   // Fetch data every 10 seconds
   @Scheduled(fixedRate = 10000)
   public void fetchAndStoreBestPrices() throws ExecutionException, InterruptedException {
@@ -41,9 +46,11 @@ public class PriceAggregationService {
         Executors.newFixedThreadPool(Math.min(CryptoProvider.values().length, maxPoolSize));
 
     CompletableFuture<BinancePriceResponse> binancePriceFuture =
-        CompletableFuture.supplyAsync(this::fetchBinancePrice, executor);
+        CompletableFuture.supplyAsync(this::fetchBinancePrice, executor)
+            .orTimeout(timeoutInSecond, TimeUnit.SECONDS);
     CompletableFuture<HuobiPriceResponse> huobiPriceFuture =
-        CompletableFuture.supplyAsync(this::fetchHuobiPrice, executor);
+        CompletableFuture.supplyAsync(this::fetchHuobiPrice, executor)
+            .orTimeout(timeoutInSecond, TimeUnit.SECONDS);
 
     // wait for all APIs to complete
     CompletableFuture<Void> allFutures =
@@ -55,7 +62,7 @@ public class PriceAggregationService {
     // Shutdown the executor
     executor.shutdown();
     try {
-      if (!executor.awaitTermination(60, TimeUnit.SECONDS)) {
+      if (!executor.awaitTermination(awaitTerminationInSecond, TimeUnit.SECONDS)) {
         executor.shutdownNow();
       }
     } catch (InterruptedException e) {
@@ -66,47 +73,57 @@ public class PriceAggregationService {
     List<MarketPriceElement> priceList =
         new ArrayList<>(
             binancePriceResponse.getPriceList().stream()
-                .map(p -> new MarketPriceElement(p.getSymbol(), p.getBidPrice(), p.getAskPrice()))
+                .map(
+                    p ->
+                        new MarketPriceElement(
+                            p.getSymbol(),
+                            p.getBidPrice(),
+                            p.getBidQty(),
+                            p.getAskPrice(),
+                            p.getAskQty()))
                 .toList());
     priceList.addAll(
         huobiPriceResponse.getData().stream()
-            .map(p -> new MarketPriceElement(p.getSymbol(), p.getBid(), p.getAsk()))
+            .map(
+                p ->
+                    new MarketPriceElement(
+                        p.getSymbol(), p.getBid(), p.getBidSize(), p.getAsk(), p.getAskSize()))
             .toList());
 
-    BigDecimal maxBidPrice;
-    BigDecimal minAskPrice;
+    MarketPriceElement maxBidPrice;
+    MarketPriceElement minAskPrice;
     for (CryptoSymbolEnum cryptoSymbol : CryptoSymbolEnum.values()) {
       maxBidPrice =
           priceList.stream()
               .filter(p -> p.getSymbol().equalsIgnoreCase(cryptoSymbol.name()))
-              .map(MarketPriceElement::getBidPrice)
-              .max(BigDecimal::compareTo)
+              .max(Comparator.comparing(MarketPriceElement::getBidPrice))
               .orElse(null);
       minAskPrice =
           priceList.stream()
               .filter(p -> p.getSymbol().equalsIgnoreCase(cryptoSymbol.name()))
-              .map(MarketPriceElement::getAskPrice)
-              .min(BigDecimal::compareTo)
+              .min(Comparator.comparing(MarketPriceElement::getAskPrice))
               .orElse(null);
       if (maxBidPrice == null || minAskPrice == null) {
         LOG.info("Something went wrong with the server, just wait for the next aggregation!!!");
         continue;
       }
-      MarketPrice marketPrice = new MarketPrice();
-      marketPrice.setCryptoSymbol(cryptoSymbol);
-      marketPrice.setBidPrice(maxBidPrice);
-      marketPrice.setAskPrice(minAskPrice);
-      marketPrice.setDtReceived(LocalDateTime.now());
-      upsertMarketPrice(marketPrice);
+      upsertMarketPrice(
+          cryptoSymbol.name(),
+          maxBidPrice.getBidPrice(),
+          maxBidPrice.getBidQty(),
+          minAskPrice.getAskPrice(),
+          minAskPrice.getAskQty());
     }
   }
 
-  private void upsertMarketPrice(MarketPrice marketPrice) {
+  private void upsertMarketPrice(
+      String symbol,
+      BigDecimal bidPrice,
+      BigDecimal bidQty,
+      BigDecimal askPrice,
+      BigDecimal askQty) {
     marketPriceRepository.upsertMarketPrice(
-        marketPrice.getCryptoSymbol().name(),
-        marketPrice.getBidPrice(),
-        marketPrice.getAskPrice(),
-        marketPrice.getDtReceived());
+        symbol, bidPrice, bidQty, askPrice, askQty, LocalDateTime.now());
   }
 
   private BinancePriceResponse fetchBinancePrice() {

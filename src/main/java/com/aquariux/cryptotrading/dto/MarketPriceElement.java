@@ -13,5 +13,7 @@ import lombok.Setter;
 public class MarketPriceElement {
   private String symbol;
   private BigDecimal bidPrice;
+  private BigDecimal bidQty;
   private BigDecimal askPrice;
+  private BigDecimal askQty;
 }
