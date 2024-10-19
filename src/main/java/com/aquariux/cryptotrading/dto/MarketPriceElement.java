@@ -11,7 +11,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 public class MarketPriceElement {
-    private String symbol;
-    private BigDecimal bidPrice;
-    private BigDecimal askPrice;
+  private String symbol;
+  private BigDecimal bidPrice;
+  private BigDecimal askPrice;
 }
