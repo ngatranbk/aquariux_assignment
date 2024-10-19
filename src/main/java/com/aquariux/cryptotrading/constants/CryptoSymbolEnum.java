@@ -12,4 +12,11 @@ public enum CryptoSymbolEnum {
     }
     return Arrays.stream(CryptoSymbolEnum.values()).anyMatch(e -> e.name().equalsIgnoreCase(value));
   }
+
+  public static CryptoSymbolEnum from(String value) {
+    if (value == null) {
+      return null;
+    }
+    return CryptoSymbolEnum.valueOf(value.toUpperCase());
+  }
 }

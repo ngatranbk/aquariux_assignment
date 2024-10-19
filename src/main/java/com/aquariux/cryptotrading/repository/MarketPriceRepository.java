@@ -1,9 +1,11 @@
 package com.aquariux.cryptotrading.repository;
 
+import com.aquariux.cryptotrading.constants.CryptoSymbolEnum;
 import com.aquariux.cryptotrading.model.MarketPrice;
 import jakarta.transaction.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -27,4 +29,9 @@ public interface MarketPriceRepository extends JpaRepository<MarketPrice, Long> 
       @Param("askPrice") BigDecimal askPrice,
       @Param("askQty") BigDecimal askQty,
       @Param("dtReceived") LocalDateTime dtReceived);
+
+  @Query(
+      value = "SELECT * FROM crypto.market_price WHERE crypto_symbol = :cryptoSymbol",
+      nativeQuery = true)
+  List<MarketPrice> findMarketPricesByCryptoSymbol(@Param("cryptoSymbol") String cryptoSymbol);
 }

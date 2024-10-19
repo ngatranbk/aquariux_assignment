@@ -3,6 +3,7 @@ package com.aquariux.cryptotrading.service;
 import com.aquariux.cryptotrading.constants.CryptoProvider;
 import com.aquariux.cryptotrading.constants.CryptoSymbolEnum;
 import com.aquariux.cryptotrading.dto.*;
+import com.aquariux.cryptotrading.model.MarketPrice;
 import com.aquariux.cryptotrading.repository.MarketPriceRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -38,6 +39,16 @@ public class PriceAggregationService {
 
   @Value("${task.timeoutInSecond}")
   private int timeoutInSecond;
+
+  public MarketPriceDto getLatestPrice(CryptoSymbolEnum cryptoSymbol) {
+    List<MarketPrice> marketPriceLst =
+        marketPriceRepository.findMarketPricesByCryptoSymbol(cryptoSymbol.name());
+    if (CollectionUtils.isEmpty(marketPriceLst)) {
+      return null;
+    }
+    // we only save one best price for each crypto symbol
+    return MarketPriceDto.fromMarketPrice(marketPriceLst.get(0));
+  }
 
   // Fetch data every 10 seconds
   @Scheduled(fixedRate = 10000)
