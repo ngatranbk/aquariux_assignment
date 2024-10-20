@@ -39,5 +39,9 @@ public final class TradeTransaction {
   @Column(nullable = false)
   private BigDecimal price;
 
-  private LocalDateTime timestamp;
+  @NotNull
+  @Column(nullable = false)
+  private BigDecimal totalPrice;
+
+  private LocalDateTime dtCreated;
 }

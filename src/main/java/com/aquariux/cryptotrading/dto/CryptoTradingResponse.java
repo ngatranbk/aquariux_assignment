@@ -14,5 +14,6 @@ import lombok.Setter;
 public class CryptoTradingResponse {
   private int status;
   private String message;
+  private boolean isError;
   private Object data;
 }

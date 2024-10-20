@@ -41,13 +41,9 @@ public class PriceAggregationService {
   private int timeoutInSecond;
 
   public MarketPriceDto getLatestPrice(CryptoSymbolEnum cryptoSymbol) {
-    List<MarketPrice> marketPriceLst =
+    MarketPrice marketPrice =
         marketPriceRepository.findMarketPricesByCryptoSymbol(cryptoSymbol.name());
-    if (CollectionUtils.isEmpty(marketPriceLst)) {
-      return null;
-    }
-    // we only save one best price for each crypto symbol
-    return MarketPriceDto.fromMarketPrice(marketPriceLst.get(0));
+    return MarketPriceDto.fromMarketPrice(marketPrice);
   }
 
   // Fetch data every 10 seconds
