@@ -6,8 +6,10 @@ import com.aquariux.cryptotrading.constants.TxnTypeEnum;
 import com.aquariux.cryptotrading.dto.CryptoTradingResponse;
 import com.aquariux.cryptotrading.dto.MarketPriceDto;
 import com.aquariux.cryptotrading.dto.TradeRequestDto;
+import com.aquariux.cryptotrading.dto.WalletBalanceDto;
 import com.aquariux.cryptotrading.service.PriceAggregationService;
 import com.aquariux.cryptotrading.service.TradingService;
+import com.aquariux.cryptotrading.service.UserService;
 import com.aquariux.cryptotrading.validator.CryptoTradingValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -18,7 +20,10 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api")
 public class CryptoTradingController {
   @Autowired private PriceAggregationService priceService;
+
   @Autowired private TradingService tradingService;
+
+  @Autowired private UserService userService;
 
   @GetMapping("/price/{cryptoSymbol}")
   public ResponseEntity<CryptoTradingResponse> getLatestPrice(@PathVariable String cryptoSymbol) {
@@ -71,6 +76,21 @@ public class CryptoTradingController {
       response.setError(true);
     }
     response.setMessage(result.getMessage());
+    return ResponseEntity.ok(response);
+  }
+
+  @GetMapping("/wallet/{userId}")
+  public ResponseEntity<CryptoTradingResponse> getWalletBalance(@PathVariable Long userId) {
+    CryptoTradingResponse response = new CryptoTradingResponse();
+    WalletBalanceDto walletBalanceDto = userService.retrieveWalletBalance(userId);
+    if (walletBalanceDto == null) {
+      response.setStatus(HttpStatus.NOT_FOUND.value());
+      response.setError(true);
+    } else {
+      response.setStatus(HttpStatus.OK.value());
+      response.setData(walletBalanceDto);
+      response.setError(false);
+    }
     return ResponseEntity.ok(response);
   }
 }
