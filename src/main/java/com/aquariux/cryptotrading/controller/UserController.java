@@ -3,48 +3,25 @@ package com.aquariux.cryptotrading.controller;
 import com.aquariux.cryptotrading.constants.CryptoSymbolEnum;
 import com.aquariux.cryptotrading.constants.TradeErrorMessage;
 import com.aquariux.cryptotrading.constants.TxnTypeEnum;
-import com.aquariux.cryptotrading.dto.CryptoTradingResponse;
-import com.aquariux.cryptotrading.dto.MarketPriceDto;
-import com.aquariux.cryptotrading.dto.TradeRequestDto;
-import com.aquariux.cryptotrading.dto.WalletBalanceDto;
+import com.aquariux.cryptotrading.dto.*;
 import com.aquariux.cryptotrading.service.PriceAggregationService;
 import com.aquariux.cryptotrading.service.TradingService;
 import com.aquariux.cryptotrading.service.UserService;
 import com.aquariux.cryptotrading.validator.CryptoTradingValidator;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api")
-public class CryptoTradingController {
+@RequestMapping("/api/users")
+public class UserController {
   @Autowired private PriceAggregationService priceService;
 
   @Autowired private TradingService tradingService;
 
   @Autowired private UserService userService;
-
-  @GetMapping("/price/{cryptoSymbol}")
-  public ResponseEntity<CryptoTradingResponse> getLatestPrice(@PathVariable String cryptoSymbol) {
-    CryptoTradingResponse response = new CryptoTradingResponse();
-    if (!CryptoTradingValidator.isCryptoSymbolValid(cryptoSymbol)) {
-      response.setStatus(HttpStatus.BAD_REQUEST.value());
-      response.setMessage("Invalid crypto symbol");
-      response.setError(true);
-      return ResponseEntity.badRequest().body(response);
-    }
-    MarketPriceDto latestPrice = priceService.getLatestPrice(CryptoSymbolEnum.from(cryptoSymbol));
-    if (latestPrice == null) {
-      response.setStatus(HttpStatus.NOT_FOUND.value());
-      response.setMessage("Market price not found");
-      response.setError(true);
-      return ResponseEntity.ok(response);
-    }
-    response.setStatus(HttpStatus.OK.value());
-    response.setData(latestPrice);
-    return ResponseEntity.ok(response);
-  }
 
   @PostMapping("/trade")
   public ResponseEntity<CryptoTradingResponse> tradeCrypto(
@@ -79,7 +56,7 @@ public class CryptoTradingController {
     return ResponseEntity.ok(response);
   }
 
-  @GetMapping("/wallet/{userId}")
+  @GetMapping("/{userId}/wallet")
   public ResponseEntity<CryptoTradingResponse> getWalletBalance(@PathVariable Long userId) {
     CryptoTradingResponse response = new CryptoTradingResponse();
     WalletBalanceDto walletBalanceDto = userService.retrieveWalletBalance(userId);
@@ -89,6 +66,26 @@ public class CryptoTradingController {
     } else {
       response.setStatus(HttpStatus.OK.value());
       response.setData(walletBalanceDto);
+      response.setError(false);
+    }
+    return ResponseEntity.ok(response);
+  }
+
+  @GetMapping("/{userId}/transactions")
+  public ResponseEntity<CryptoTradingResponse> getTradeHistory(
+      @PathVariable Long userId,
+      @RequestParam(defaultValue = "0") int page,
+      @RequestParam(defaultValue = "100") int size) {
+    CryptoTradingResponse response = new CryptoTradingResponse();
+    Page<TradeTransactionDto> transactionPage =
+        tradingService.getTradeHistoryByUser(userId, page, size);
+    if (transactionPage.isEmpty()) {
+      response.setStatus(HttpStatus.NOT_FOUND.value());
+      response.setMessage("Transactions not found");
+      response.setError(true);
+    } else {
+      response.setStatus(HttpStatus.OK.value());
+      response.setData(transactionPage);
       response.setError(false);
     }
     return ResponseEntity.ok(response);

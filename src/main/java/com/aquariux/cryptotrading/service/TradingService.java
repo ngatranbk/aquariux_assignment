@@ -3,6 +3,7 @@ package com.aquariux.cryptotrading.service;
 import com.aquariux.cryptotrading.constants.CryptoSymbolEnum;
 import com.aquariux.cryptotrading.constants.TradeErrorMessage;
 import com.aquariux.cryptotrading.constants.TxnTypeEnum;
+import com.aquariux.cryptotrading.dto.TradeTransactionDto;
 import com.aquariux.cryptotrading.model.MarketPrice;
 import com.aquariux.cryptotrading.model.TradeTransaction;
 import com.aquariux.cryptotrading.model.User;
@@ -12,6 +13,9 @@ import com.aquariux.cryptotrading.repository.UserRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -89,5 +93,12 @@ public class TradingService {
     transactionRepository.save(transaction);
 
     return TradeErrorMessage.OK;
+  }
+
+  public Page<TradeTransactionDto> getTradeHistoryByUser(Long userId, int page, int size) {
+    Pageable pageable = PageRequest.of(page, size);
+    Page<TradeTransaction> transactions =
+        transactionRepository.findByUserIdOrderByDtCreatedDesc(userId, pageable);
+    return transactions.map(TradeTransactionDto::fromTradeTransaction);
   }
 }

@@ -1,0 +1,15 @@
+package com.aquariux.cryptotrading.dto;
+
+import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class TradeHistoryResponseDto {
+  List<TradeTransactionDto> tradeHistoryList;
+}
