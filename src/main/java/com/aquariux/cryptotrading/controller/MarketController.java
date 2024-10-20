@@ -21,8 +21,9 @@ public class MarketController {
   @Autowired private UserService userService;
 
   @GetMapping("/price/{cryptoSymbol}")
-  public ResponseEntity<CryptoTradingResponse> getLatestPrice(@PathVariable String cryptoSymbol) {
-    CryptoTradingResponse response = new CryptoTradingResponse();
+  public ResponseEntity<CryptoTradingResponseDto> getLatestPrice(
+      @PathVariable String cryptoSymbol) {
+    CryptoTradingResponseDto response = new CryptoTradingResponseDto();
     if (!CryptoTradingValidator.isCryptoSymbolValid(cryptoSymbol)) {
       response.setStatus(HttpStatus.BAD_REQUEST.value());
       response.setMessage("Invalid crypto symbol");

@@ -10,7 +10,7 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class MarketPriceElement {
+public class BinancePriceElementDto {
   private String symbol;
   private BigDecimal bidPrice;
   private BigDecimal bidQty;

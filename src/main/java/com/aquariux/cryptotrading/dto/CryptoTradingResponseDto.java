@@ -11,7 +11,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class CryptoTradingResponse {
+public class CryptoTradingResponseDto {
   private int status;
   private String message;
   private boolean isError;

@@ -52,10 +52,10 @@ public class PriceAggregationService {
     ExecutorService executor =
         Executors.newFixedThreadPool(Math.min(CryptoProvider.values().length, maxPoolSize));
 
-    CompletableFuture<BinancePriceResponse> binancePriceFuture =
+    CompletableFuture<BinancePriceResponseDto> binancePriceFuture =
         CompletableFuture.supplyAsync(this::fetchBinancePrice, executor)
             .orTimeout(timeoutInSecond, TimeUnit.SECONDS);
-    CompletableFuture<HuobiPriceResponse> huobiPriceFuture =
+    CompletableFuture<HuobiPriceResponseDto> huobiPriceFuture =
         CompletableFuture.supplyAsync(this::fetchHuobiPrice, executor)
             .orTimeout(timeoutInSecond, TimeUnit.SECONDS);
 
@@ -63,8 +63,8 @@ public class PriceAggregationService {
     CompletableFuture<Void> allFutures =
         CompletableFuture.allOf(binancePriceFuture, huobiPriceFuture);
     allFutures.get();
-    BinancePriceResponse binancePriceResponse = binancePriceFuture.get();
-    HuobiPriceResponse huobiPriceResponse = huobiPriceFuture.get();
+    BinancePriceResponseDto binancePriceResponse = binancePriceFuture.get();
+    HuobiPriceResponseDto huobiPriceResponse = huobiPriceFuture.get();
 
     // Shutdown the executor
     executor.shutdown();
@@ -77,12 +77,12 @@ public class PriceAggregationService {
     }
 
     // combine all prices for comparison
-    List<MarketPriceElement> priceList =
+    List<MarketPriceElementDto> priceList =
         new ArrayList<>(
             binancePriceResponse.getPriceList().stream()
                 .map(
                     p ->
-                        new MarketPriceElement(
+                        new MarketPriceElementDto(
                             p.getSymbol(),
                             p.getBidPrice(),
                             p.getBidQty(),
@@ -93,22 +93,22 @@ public class PriceAggregationService {
         huobiPriceResponse.getData().stream()
             .map(
                 p ->
-                    new MarketPriceElement(
+                    new MarketPriceElementDto(
                         p.getSymbol(), p.getBid(), p.getBidSize(), p.getAsk(), p.getAskSize()))
             .toList());
 
-    MarketPriceElement maxBidPrice;
-    MarketPriceElement minAskPrice;
+    MarketPriceElementDto maxBidPrice;
+    MarketPriceElementDto minAskPrice;
     for (CryptoSymbolEnum cryptoSymbol : CryptoSymbolEnum.values()) {
       maxBidPrice =
           priceList.stream()
               .filter(p -> p.getSymbol().equalsIgnoreCase(cryptoSymbol.name()))
-              .max(Comparator.comparing(MarketPriceElement::getBidPrice))
+              .max(Comparator.comparing(MarketPriceElementDto::getBidPrice))
               .orElse(null);
       minAskPrice =
           priceList.stream()
               .filter(p -> p.getSymbol().equalsIgnoreCase(cryptoSymbol.name()))
-              .min(Comparator.comparing(MarketPriceElement::getAskPrice))
+              .min(Comparator.comparing(MarketPriceElementDto::getAskPrice))
               .orElse(null);
       if (maxBidPrice == null || minAskPrice == null) {
         LOG.info("Something went wrong with the server, just wait for the next aggregation!!!");
@@ -133,10 +133,10 @@ public class PriceAggregationService {
         symbol, bidPrice, bidQty, askPrice, askQty, LocalDateTime.now());
   }
 
-  private BinancePriceResponse fetchBinancePrice() {
-    List<BinancePriceElement> priceList =
+  private BinancePriceResponseDto fetchBinancePrice() {
+    List<BinancePriceElementDto> priceList =
         fetchPriceList(CryptoProvider.BINANCE.getUrl(), new ParameterizedTypeReference<>() {});
-    BinancePriceResponse response = new BinancePriceResponse();
+    BinancePriceResponseDto response = new BinancePriceResponseDto();
     if (CollectionUtils.isEmpty(priceList)) {
       response.setPriceList(new ArrayList<>());
     } else {
@@ -149,11 +149,11 @@ public class PriceAggregationService {
     return response;
   }
 
-  private HuobiPriceResponse fetchHuobiPrice() {
-    HuobiPriceResponse huobiPriceResponse =
+  private HuobiPriceResponseDto fetchHuobiPrice() {
+    HuobiPriceResponseDto huobiPriceResponse =
         fetchPriceList(CryptoProvider.HUOBI.getUrl(), new ParameterizedTypeReference<>() {});
     if (huobiPriceResponse == null) {
-      huobiPriceResponse = new HuobiPriceResponse();
+      huobiPriceResponse = new HuobiPriceResponseDto();
     }
     if (CollectionUtils.isEmpty(huobiPriceResponse.getData())) {
       huobiPriceResponse.setData(new ArrayList<>());

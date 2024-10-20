@@ -24,9 +24,9 @@ public class UserController {
   @Autowired private UserService userService;
 
   @PostMapping("/trade")
-  public ResponseEntity<CryptoTradingResponse> tradeCrypto(
+  public ResponseEntity<CryptoTradingResponseDto> tradeCrypto(
       @RequestBody TradeRequestDto tradeRequest) {
-    CryptoTradingResponse response = new CryptoTradingResponse();
+    CryptoTradingResponseDto response = new CryptoTradingResponseDto();
     if (!CryptoTradingValidator.isCryptoSymbolValid(tradeRequest.getCryptoSymbol())) {
       response.setStatus(HttpStatus.BAD_REQUEST.value());
       response.setMessage("Invalid crypto symbol");
@@ -57,8 +57,8 @@ public class UserController {
   }
 
   @GetMapping("/{userId}/wallet")
-  public ResponseEntity<CryptoTradingResponse> getWalletBalance(@PathVariable Long userId) {
-    CryptoTradingResponse response = new CryptoTradingResponse();
+  public ResponseEntity<CryptoTradingResponseDto> getWalletBalance(@PathVariable Long userId) {
+    CryptoTradingResponseDto response = new CryptoTradingResponseDto();
     WalletBalanceDto walletBalanceDto = userService.retrieveWalletBalance(userId);
     if (walletBalanceDto == null) {
       response.setStatus(HttpStatus.NOT_FOUND.value());
@@ -72,11 +72,11 @@ public class UserController {
   }
 
   @GetMapping("/{userId}/transactions")
-  public ResponseEntity<CryptoTradingResponse> getTradeHistory(
+  public ResponseEntity<CryptoTradingResponseDto> getTradeHistory(
       @PathVariable Long userId,
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "100") int size) {
-    CryptoTradingResponse response = new CryptoTradingResponse();
+    CryptoTradingResponseDto response = new CryptoTradingResponseDto();
     Page<TradeTransactionDto> transactionPage =
         tradingService.getTradeHistoryByUser(userId, page, size);
     if (transactionPage.isEmpty()) {

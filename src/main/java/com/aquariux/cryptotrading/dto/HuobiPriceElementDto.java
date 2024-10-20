@@ -10,10 +10,10 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class BinancePriceElement {
+public class HuobiPriceElementDto {
   private String symbol;
-  private BigDecimal bidPrice;
-  private BigDecimal bidQty;
-  private BigDecimal askPrice;
-  private BigDecimal askQty;
+  private BigDecimal bid;
+  private BigDecimal bidSize;
+  private BigDecimal ask;
+  private BigDecimal askSize;
 }

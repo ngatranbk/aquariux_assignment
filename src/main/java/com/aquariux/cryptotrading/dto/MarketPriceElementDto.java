@@ -10,10 +10,10 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class HuobiPriceElement {
+public class MarketPriceElementDto {
   private String symbol;
-  private BigDecimal bid;
-  private BigDecimal bidSize;
-  private BigDecimal ask;
-  private BigDecimal askSize;
+  private BigDecimal bidPrice;
+  private BigDecimal bidQty;
+  private BigDecimal askPrice;
+  private BigDecimal askQty;
 }
